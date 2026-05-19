@@ -1,0 +1,14 @@
+.git
+.gitignore
+.venv
+venv
+__pycache__
+*.pyc
+mlruns
+models
+evals
+prompts
+python-basics
+README.md
+Makefile
+.github
