@@ -1,0 +1,1730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>End-to-End MLOps Pipeline — A DevOps Engineer's Field Guide</title>
+<meta name="description" content="20-minute talk: shipping ML models the way you already ship code.">
+
+<!-- Fonts: Archivo Black (display) + Space Grotesk (body) — Bold Signal preset -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+
+<style>
+/* =====================================================================
+   THEME — Bold Signal preset
+   Tweak these CSS variables to retheme the entire deck.
+   ===================================================================== */
+:root {
+  --bg-primary: #1a1a1a;
+  --bg-gradient: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
+  --bg-panel: #232323;
+  --card-bg: #FF5722;
+  --card-bg-alt: #f8f6f1;
+  --card-bg-dark: #0d0d0d;
+  --text-primary: #ffffff;
+  --text-on-card: #1a1a1a;
+  --text-muted: #888;
+  --text-dim: #555;
+  --accent-grid: rgba(255,255,255,0.04);
+  --border-soft: rgba(255,255,255,0.1);
+  --border-on-card: rgba(26,26,26,0.18);
+
+  /* Typography (clamp() for viewport-fit) */
+  --font-display: 'Archivo Black', sans-serif;
+  --font-body: 'Space Grotesk', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --title-size: clamp(1.8rem, 5vw, 4.5rem);
+  --h2-size: clamp(1.25rem, 3.2vw, 2.4rem);
+  --h3-size: clamp(1rem, 2vw, 1.5rem);
+  --body-size: clamp(0.78rem, 1.15vw, 1.05rem);
+  --small-size: clamp(0.65rem, 0.9vw, 0.82rem);
+  --tiny-size: clamp(0.55rem, 0.78vw, 0.72rem);
+
+  --slide-padding: clamp(1.5rem, 4vw, 3.5rem);
+  --content-gap: clamp(0.75rem, 1.8vw, 1.6rem);
+  --element-gap: clamp(0.4rem, 1vw, 0.9rem);
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-normal: 0.7s;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ====================================================================
+   VIEWPORT BASE (from viewport-base.css — keep intact)
+   ==================================================================== */
+html, body { height: 100%; overflow-x: hidden; }
+html { scroll-snap-type: y mandatory; scroll-behavior: smooth; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg-gradient);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+.slide {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding: var(--slide-padding);
+}
+.slide-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+  overflow: hidden;
+}
+img, .image-container {
+  max-width: 100%;
+  max-height: min(50vh, 400px);
+  object-fit: contain;
+}
+
+/* Short viewports — aggressive scaling */
+@media (max-height: 700px) {
+  :root {
+    --slide-padding: clamp(1rem, 3vw, 2rem);
+    --content-gap: clamp(0.5rem, 1.4vw, 1.2rem);
+    --title-size: clamp(1.4rem, 4.5vw, 3rem);
+    --h2-size: clamp(1.05rem, 3vw, 1.8rem);
+  }
+}
+@media (max-height: 600px) {
+  :root {
+    --slide-padding: clamp(0.75rem, 2.5vw, 1.5rem);
+    --content-gap: clamp(0.4rem, 1vw, 0.8rem);
+    --title-size: clamp(1.2rem, 4vw, 2.2rem);
+    --body-size: clamp(0.72rem, 1vw, 0.9rem);
+  }
+  .nav-dots, .keyboard-hint, .decorative { display: none; }
+}
+@media (max-height: 500px) {
+  :root {
+    --slide-padding: clamp(0.5rem, 2vw, 1rem);
+    --title-size: clamp(1.05rem, 3.5vw, 1.7rem);
+    --h2-size: clamp(0.95rem, 2.5vw, 1.3rem);
+    --body-size: clamp(0.65rem, 0.95vw, 0.82rem);
+  }
+}
+@media (max-width: 600px) {
+  :root { --title-size: clamp(1.25rem, 7vw, 2.5rem); }
+  .grid { grid-template-columns: 1fr !important; }
+  .rail { display: none !important; }
+  .slide-grid { grid-template-columns: 1fr !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.2s !important;
+  }
+  html { scroll-behavior: auto; }
+}
+
+/* ====================================================================
+   ANIMATIONS — triggered via .visible (added by IntersectionObserver)
+   ==================================================================== */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity var(--duration-normal) var(--ease-out-expo),
+              transform var(--duration-normal) var(--ease-out-expo);
+}
+.slide.visible .reveal { opacity: 1; transform: translateY(0); }
+.reveal-right {
+  opacity: 0;
+  transform: translateX(40px);
+  transition: opacity var(--duration-normal) var(--ease-out-expo),
+              transform var(--duration-normal) var(--ease-out-expo);
+}
+.slide.visible .reveal-right { opacity: 1; transform: translateX(0); }
+.reveal-scale {
+  opacity: 0;
+  transform: scale(0.94);
+  transition: opacity var(--duration-normal) var(--ease-out-expo),
+              transform var(--duration-normal) var(--ease-out-expo);
+}
+.slide.visible .reveal-scale { opacity: 1; transform: scale(1); }
+
+/* Stagger nth-child for sequential reveal */
+.slide.visible .reveal:nth-child(1),
+.slide.visible .reveal-right:nth-child(1) { transition-delay: 0.05s; }
+.slide.visible .reveal:nth-child(2),
+.slide.visible .reveal-right:nth-child(2) { transition-delay: 0.15s; }
+.slide.visible .reveal:nth-child(3),
+.slide.visible .reveal-right:nth-child(3) { transition-delay: 0.25s; }
+.slide.visible .reveal:nth-child(4),
+.slide.visible .reveal-right:nth-child(4) { transition-delay: 0.35s; }
+.slide.visible .reveal:nth-child(5),
+.slide.visible .reveal-right:nth-child(5) { transition-delay: 0.45s; }
+.slide.visible .reveal:nth-child(6),
+.slide.visible .reveal-right:nth-child(6) { transition-delay: 0.55s; }
+
+/* ====================================================================
+   LAYOUT — left rail (section num + nav crumbs) + right content
+   ==================================================================== */
+.slide-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) 3.2fr;
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+  align-items: stretch;
+  max-height: 100%;
+  overflow: hidden;
+}
+.rail {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-block: clamp(0.5rem, 1.5vh, 1.5rem);
+  min-height: 0;
+}
+.section-num {
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 9vw, 7.5rem);
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+  color: var(--text-primary);
+}
+.section-num small {
+  display: block;
+  font-size: clamp(0.6rem, 0.9vw, 0.78rem);
+  font-family: var(--font-body);
+  font-weight: 500;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-top: 1.2vh;
+}
+.rail-bottom { display: flex; flex-direction: column; gap: 1.2vh; }
+.eyebrow {
+  font-size: var(--tiny-size);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  font-weight: 500;
+}
+.nav-crumbs {
+  display: flex; flex-direction: column; gap: 0.5vh;
+  font-size: var(--small-size);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.nav-crumbs span { opacity: 0.3; transition: opacity 0.4s ease; }
+.nav-crumbs span.active { opacity: 1; color: var(--card-bg); }
+
+/* ====================================================================
+   CARDS — orange focal card, dark card, paper card variants
+   ==================================================================== */
+.card {
+  background: var(--card-bg);
+  color: var(--text-on-card);
+  padding: clamp(1.5rem, 3.5vw, 3rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--content-gap);
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+.card.dark { background: var(--card-bg-dark); color: var(--text-primary); }
+.card.paper { background: var(--card-bg-alt); color: var(--text-on-card); }
+.card h1 {
+  font-family: var(--font-display);
+  font-size: var(--title-size);
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+}
+.card h2 {
+  font-family: var(--font-display);
+  font-size: var(--h2-size);
+  line-height: 1;
+  letter-spacing: -0.025em;
+}
+.card h3 {
+  font-family: var(--font-display);
+  font-size: var(--h3-size);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+.card .lede {
+  font-size: var(--body-size);
+  line-height: 1.5;
+  max-width: 60ch;
+  font-weight: 400;
+}
+.card .lede b { font-weight: 700; }
+.card em.highlight {
+  font-style: normal;
+  background: #1a1a1a;
+  color: var(--card-bg);
+  padding: 0 0.2em;
+}
+.card.dark em.highlight {
+  background: var(--card-bg);
+  color: #1a1a1a;
+}
+.kicker {
+  font-family: var(--font-body);
+  font-size: var(--tiny-size);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  font-weight: 700;
+  display: inline-flex; align-items: center; gap: 0.5rem;
+}
+.kicker::before { content: '●'; font-size: 0.6em; }
+
+/* Meta grid (title slide) */
+.meta {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: clamp(0.6rem, 2vw, 1.5rem);
+  border-top: 2px solid var(--border-on-card);
+  padding-top: clamp(0.75rem, 2vh, 1.5rem);
+}
+.meta-item .k {
+  font-size: var(--tiny-size);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  margin-bottom: 0.4vh;
+}
+.meta-item .v {
+  font-family: var(--font-display);
+  font-size: clamp(0.85rem, 1.4vw, 1.2rem);
+  line-height: 1.1;
+}
+
+/* ====================================================================
+   AGENDA LIST
+   ==================================================================== */
+.agenda-list { list-style: none; display: flex; flex-direction: column; gap: clamp(0.6rem, 1.6vh, 1.2rem); }
+.agenda-list li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: clamp(0.8rem, 2vw, 2rem);
+  align-items: baseline;
+  padding-block: 0.5rem;
+  border-bottom: 1px dashed var(--border-on-card);
+}
+.agenda-list .ag-num {
+  font-family: var(--font-display);
+  font-size: clamp(0.95rem, 1.4vw, 1.2rem);
+  color: var(--text-on-card);
+}
+.agenda-list .ag-title {
+  font-size: var(--body-size);
+  font-weight: 500;
+}
+.agenda-list .ag-time {
+  font-family: var(--font-mono);
+  font-size: var(--small-size);
+  font-weight: 500;
+  opacity: 0.7;
+}
+
+/* ====================================================================
+   BULLET LIST
+   ==================================================================== */
+.bullet-list {
+  list-style: none;
+  display: flex; flex-direction: column;
+  gap: clamp(0.55rem, 1.4vh, 1.1rem);
+}
+.bullet-list li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: clamp(0.7rem, 1.4vw, 1.2rem);
+  align-items: baseline;
+  font-size: var(--body-size);
+  line-height: 1.45;
+}
+.bullet-list li::before {
+  content: '';
+  width: 0.55em; height: 0.55em;
+  background: var(--card-bg);
+  border-radius: 0;
+  display: inline-block;
+}
+.card .bullet-list li::before { background: var(--text-on-card); }
+.card.dark .bullet-list li::before { background: var(--card-bg); }
+.bullet-list b { font-weight: 700; }
+.bullet-list code, .bullet-list .ic {
+  font-family: var(--font-mono);
+  background: rgba(26,26,26,0.08);
+  padding: 0.05em 0.4em;
+  border-radius: 2px;
+  font-size: 0.92em;
+}
+.card.dark .bullet-list code, .card.dark .bullet-list .ic {
+  background: rgba(255,255,255,0.08);
+}
+
+/* ====================================================================
+   STAGES GRID — "Data → Train → Register → Serve → Monitor"
+   ==================================================================== */
+.stages {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: clamp(0.4rem, 1vw, 0.9rem);
+  align-items: stretch;
+}
+.stage {
+  background: rgba(26,26,26,0.06);
+  border: 1px solid var(--border-on-card);
+  padding: clamp(0.7rem, 1.4vw, 1.2rem);
+  display: flex; flex-direction: column; gap: 0.8vh;
+  position: relative;
+}
+.stage .n {
+  font-family: var(--font-display);
+  font-size: clamp(0.75rem, 1.1vw, 0.95rem);
+  color: var(--card-bg);
+  background: #1a1a1a;
+  padding: 0 0.4em;
+  width: fit-content;
+}
+.stage .lbl {
+  font-family: var(--font-display);
+  font-size: clamp(0.9rem, 1.5vw, 1.25rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.stage .desc {
+  font-size: var(--tiny-size);
+  line-height: 1.4;
+  opacity: 0.78;
+}
+.stage:not(:last-child)::after {
+  content: '→';
+  position: absolute;
+  right: calc(-1 * clamp(0.45rem, 1vw, 0.85rem) - 0.5em);
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-display);
+  font-size: clamp(0.9rem, 1.6vw, 1.4rem);
+  color: var(--text-on-card);
+  opacity: 0.5;
+}
+.card.dark .stage { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.12); }
+.card.dark .stage:not(:last-child)::after { color: var(--text-primary); }
+
+/* ====================================================================
+   COMPARISON TABLE (DevOps analogues, tool comparison)
+   ==================================================================== */
+.cmp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--small-size);
+  table-layout: fixed;
+}
+.cmp-table th, .cmp-table td {
+  padding: clamp(0.45rem, 0.9vh, 0.85rem) clamp(0.5rem, 0.8vw, 0.85rem);
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--border-on-card);
+  line-height: 1.35;
+}
+.cmp-table th {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--tiny-size);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  border-bottom: 2px solid var(--text-on-card);
+}
+.cmp-table tr:last-child td { border-bottom: none; }
+.cmp-table .stage-name {
+  font-family: var(--font-display);
+  font-size: var(--small-size);
+}
+.cmp-table code {
+  font-family: var(--font-mono);
+  background: rgba(26,26,26,0.08);
+  padding: 0.05em 0.35em;
+  font-size: 0.9em;
+}
+.cmp-table .yes { color: #1a6b3a; font-weight: 700; }
+.cmp-table .no  { color: #a52828; font-weight: 700; }
+.cmp-table .meh { color: #8a6a14; font-weight: 700; }
+.card.dark .cmp-table th { border-bottom-color: var(--card-bg); }
+.card.dark .cmp-table th, .card.dark .cmp-table td { border-bottom-color: rgba(255,255,255,0.1); }
+.card.dark .cmp-table code { background: rgba(255,255,255,0.1); }
+.card.dark .cmp-table .yes { color: #6fe8a0; }
+.card.dark .cmp-table .no  { color: #ff8a8a; }
+.card.dark .cmp-table .meh { color: #ffd47a; }
+
+/* ====================================================================
+   TWO-COLUMN PROS / CONS
+   ==================================================================== */
+.pc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(0.8rem, 2vw, 1.6rem);
+}
+.pc-col h4 {
+  font-family: var(--font-display);
+  font-size: clamp(0.85rem, 1.2vw, 1.05rem);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 0.8vh;
+}
+.pc-col.pros h4 { color: #1a6b3a; }
+.pc-col.cons h4 { color: #a52828; }
+.card.dark .pc-col.pros h4 { color: #6fe8a0; }
+.card.dark .pc-col.cons h4 { color: #ff8a8a; }
+.pc-col ul { list-style: none; display: flex; flex-direction: column; gap: 0.55vh; }
+.pc-col li {
+  font-size: var(--small-size);
+  line-height: 1.4;
+  padding-left: 1em;
+  position: relative;
+}
+.pc-col.pros li::before { content: '+'; position: absolute; left: 0; font-weight: 700; }
+.pc-col.cons li::before { content: '−'; position: absolute; left: 0; font-weight: 700; }
+
+/* ====================================================================
+   ARCHITECTURE DIAGRAM (CSS boxes)
+   ==================================================================== */
+.arch {
+  display: grid;
+  grid-template-rows: auto auto auto auto auto;
+  gap: clamp(0.4rem, 1vh, 0.9rem);
+  font-family: var(--font-body);
+  font-size: var(--small-size);
+}
+.arch-row {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  gap: clamp(0.5rem, 1vw, 1rem);
+  align-items: stretch;
+}
+.arch-label {
+  font-family: var(--font-display);
+  font-size: var(--tiny-size);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--card-bg);
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,87,34,0.08);
+  border-left: 2px solid var(--card-bg);
+}
+.arch-boxes { display: grid; gap: clamp(0.4rem, 0.8vw, 0.7rem); }
+.arch-box {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border-soft);
+  padding: clamp(0.45rem, 1vh, 0.85rem) clamp(0.65rem, 1.2vw, 1rem);
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 0.8rem;
+  font-size: var(--small-size);
+  line-height: 1.3;
+}
+.arch-box .name { font-family: var(--font-display); font-size: var(--small-size); letter-spacing: -0.01em; }
+.arch-box .tools { font-family: var(--font-mono); font-size: var(--tiny-size); color: var(--text-muted); }
+.arch-box.accent { border-color: var(--card-bg); background: rgba(255,87,34,0.13); }
+.arch-box.accent .name { color: var(--card-bg); }
+.arch-row.split .arch-boxes { grid-template-columns: 1fr 1fr; }
+.arch-row.triple .arch-boxes { grid-template-columns: 1fr 1fr 1fr; }
+
+/* ====================================================================
+   CODE BLOCKS
+   ==================================================================== */
+.code-block {
+  background: var(--card-bg-dark);
+  color: #f8f6f1;
+  font-family: var(--font-mono);
+  font-size: clamp(0.7rem, 1vw, 0.95rem);
+  line-height: 1.55;
+  padding: clamp(0.9rem, 1.8vw, 1.5rem);
+  border-left: 4px solid var(--card-bg);
+  white-space: pre;
+  overflow: hidden;
+  position: relative;
+}
+.code-block .prompt { color: var(--card-bg); user-select: none; }
+.code-block .kw { color: #ff7a7a; }
+.code-block .str { color: #ffd47a; }
+.code-block .fn { color: #7adfff; }
+.code-block .num { color: #c8a8ff; }
+.code-block .cmt { color: #777; font-style: italic; }
+.code-block-label {
+  font-family: var(--font-display);
+  font-size: var(--tiny-size);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--card-bg);
+  margin-bottom: 0.8vh;
+}
+
+/* ====================================================================
+   SCREENSHOT FALLBACK (placeholder until real PNG dropped in)
+   ==================================================================== */
+.screenshot-frame {
+  background: var(--card-bg-dark);
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  overflow: hidden;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  min-height: 0;
+}
+.screenshot-bar {
+  background: #2a2a2a;
+  padding: 0.6rem 1rem;
+  display: flex; gap: 0.4rem; align-items: center;
+  border-bottom: 1px solid var(--border-soft);
+}
+.screenshot-bar .dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #ff5f56;
+}
+.screenshot-bar .dot:nth-child(2) { background: #ffbd2e; }
+.screenshot-bar .dot:nth-child(3) { background: #27c93f; }
+.screenshot-bar .url {
+  margin-left: 1rem;
+  font-family: var(--font-mono);
+  font-size: var(--tiny-size);
+  color: var(--text-muted);
+}
+.screenshot-body {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center;
+  background:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px),
+    var(--card-bg-dark);
+  background-size: 24px 24px;
+  min-height: 0;
+  padding: clamp(0.8rem, 2vw, 1.5rem);
+  position: relative;
+}
+.screenshot-placeholder {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: var(--small-size);
+  color: var(--text-muted);
+  display: flex; flex-direction: column; gap: 0.5rem; align-items: center;
+}
+.screenshot-placeholder .icon {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3vw, 2.4rem);
+  color: var(--card-bg);
+}
+.screenshot-placeholder .hint {
+  font-size: var(--tiny-size);
+  opacity: 0.7;
+  max-width: 50ch;
+  line-height: 1.5;
+}
+/* If user adds real screenshot, just swap .screenshot-placeholder for <img src="..."> */
+.screenshot-body img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* ====================================================================
+   PROGRESS BAR + NAV DOTS + KEY HINT
+   ==================================================================== */
+.progress-bar {
+  position: fixed; top: 0; left: 0;
+  height: 3px;
+  background: var(--card-bg);
+  width: 0;
+  z-index: 100;
+  transition: width 0.25s ease;
+}
+.nav-dots {
+  position: fixed;
+  right: clamp(0.75rem, 1.5vw, 1.5rem);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex; flex-direction: column;
+  gap: clamp(0.4rem, 0.8vh, 0.7rem);
+  z-index: 90;
+}
+.nav-dots button {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.nav-dots button.active {
+  background: var(--card-bg);
+  transform: scale(1.4);
+}
+.nav-dots button:hover { background: var(--card-bg); }
+.keyboard-hint {
+  position: fixed;
+  bottom: clamp(0.75rem, 1.5vw, 1.5rem);
+  right: clamp(0.75rem, 1.5vw, 1.5rem);
+  font-family: var(--font-mono);
+  font-size: var(--tiny-size);
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  z-index: 90;
+}
+.keyboard-hint kbd {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid var(--border-soft);
+  padding: 0.1em 0.5em;
+  font-family: inherit;
+  font-size: 0.9em;
+}
+
+/* ====================================================================
+   TITLE SLIDE EXTRAS
+   ==================================================================== */
+.title-card { justify-content: space-between; }
+.title-tagline {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: var(--body-size);
+  letter-spacing: 0.05em;
+  line-height: 1.4;
+  max-width: 50ch;
+}
+
+/* ====================================================================
+   CLOSING SLIDE
+   ==================================================================== */
+.closing-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(1rem, 3vw, 2.5rem);
+  align-items: center;
+  flex: 1;
+}
+.closing-thanks h2 {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 7vw, 6rem);
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+  margin-bottom: 2vh;
+}
+.closing-thanks .sub {
+  font-size: var(--body-size);
+  color: var(--text-muted);
+  max-width: 40ch;
+  line-height: 1.5;
+}
+
+/* ====================================================================
+   INLINE EDITING (opt-in: enabled)
+   ==================================================================== */
+.edit-hotzone {
+  position: fixed; top: 0; left: 0;
+  width: 80px; height: 80px;
+  z-index: 10000;
+  cursor: pointer;
+}
+.edit-toggle {
+  position: fixed;
+  top: clamp(0.75rem, 1.5vw, 1.2rem);
+  left: clamp(0.75rem, 1.5vw, 1.2rem);
+  width: clamp(36px, 4vw, 44px);
+  height: clamp(36px, 4vw, 44px);
+  border-radius: 50%;
+  border: none;
+  background: var(--card-bg);
+  color: #1a1a1a;
+  font-size: 1.2rem;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.2s ease;
+  z-index: 10001;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.edit-toggle.show, .edit-toggle.active { opacity: 1; pointer-events: auto; }
+.edit-toggle.active { background: #1a6b3a; color: #fff; }
+.edit-toggle:hover { transform: scale(1.05); }
+[contenteditable="true"] {
+  outline: 2px dashed var(--card-bg);
+  outline-offset: 4px;
+  background: rgba(255, 87, 34, 0.08);
+  cursor: text;
+}
+[contenteditable="true"]:focus { outline-style: solid; }
+.edit-save {
+  position: fixed;
+  bottom: clamp(0.75rem, 1.5vw, 1.2rem);
+  left: clamp(0.75rem, 1.5vw, 1.2rem);
+  background: #1a6b3a;
+  color: #fff;
+  border: none;
+  padding: 0.7rem 1.2rem;
+  font-family: var(--font-display);
+  font-size: var(--small-size);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: none;
+  z-index: 10001;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.edit-save.show { display: block; }
+.edit-toast {
+  position: fixed;
+  bottom: clamp(0.75rem, 1.5vw, 1.5rem);
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #1a6b3a;
+  color: #fff;
+  padding: 0.7rem 1.4rem;
+  font-family: var(--font-body);
+  font-size: var(--small-size);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  z-index: 10002;
+}
+.edit-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- Inline-editing affordances (opt-in) -->
+<div class="edit-hotzone" title="Move mouse to top-left or press E for edit mode"></div>
+<button class="edit-toggle" id="editToggle" title="Edit mode (E)">✎</button>
+<button class="edit-save" id="editSave" title="Download edited deck">↓ Save HTML</button>
+<div class="edit-toast" id="editToast">Saved.</div>
+
+<!-- Progress + nav -->
+<div class="progress-bar" id="progressBar"></div>
+<nav class="nav-dots" id="navDots" aria-label="Slide navigation"></nav>
+<div class="keyboard-hint"><kbd>←</kbd> <kbd>→</kbd> <kbd>space</kbd> · <kbd>e</kbd> edit</div>
+
+<!-- =====================================================================
+     SLIDE 1 — TITLE
+     ===================================================================== -->
+<section class="slide" data-section="intro">
+  <div class="slide-grid">
+    <div class="rail reveal">
+      <div class="section-num">00<small>Intro</small></div>
+      <div class="rail-bottom">
+        <div class="eyebrow">A field guide</div>
+        <div class="nav-crumbs">
+          <span class="active">Intro</span>
+          <span>What</span>
+          <span>How</span>
+          <span>Trade-offs</span>
+          <span>Demo</span>
+          <span>vs.</span>
+        </div>
+      </div>
+    </div>
+    <div class="card title-card reveal-right">
+      <div>
+        <div class="kicker">DevOps engineer's field guide</div>
+      </div>
+      <h1>End-to-End<br><em class="highlight">MLOps</em> Pipeline</h1>
+      <p class="title-tagline">If you can ship code with CI/CD, you can ship models the same way. Same primitives, weights inside.</p>
+      <div class="meta">
+        <div class="meta-item"><div class="k">Speaker</div><div class="v">Rodrigo</div></div>
+        <div class="meta-item"><div class="k">Duration</div><div class="v">20 min</div></div>
+        <div class="meta-item"><div class="k">Audience</div><div class="v">DevOps</div></div>
+        <div class="meta-item"><div class="k">Mode</div><div class="v">Live Demo</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     SLIDE 2 — AGENDA
+     ===================================================================== -->
+<section class="slide" data-section="intro">
+  <div class="slide-grid">
+    <div class="rail reveal">
+      <div class="section-num">·<small>Agenda</small></div>
+      <div class="rail-bottom">
+        <div class="eyebrow">~ 20 min · 17 slides</div>
+        <div class="nav-crumbs">
+          <span class="active">Agenda</span>
+          <span>What</span>
+          <span>How</span>
+          <span>Trade-offs</span>
+          <span>Demo</span>
+          <span>vs.</span>
+        </div>
+      </div>
+    </div>
+    <div class="card paper reveal-right">
+      <h2>Agenda</h2>
+      <ol class="agenda-list">
+        <li><span class="ag-num">01</span><span class="ag-title"><b>What</b> — MLOps end-to-end defined for DevOps</span><span class="ag-time">~ 3 min</span></li>
+        <li><span class="ag-num">02</span><span class="ag-title"><b>How</b> — architecture &amp; components</span><span class="ag-time">~ 5 min</span></li>
+        <li><span class="ag-num">03</span><span class="ag-title"><b>Trade-offs</b> — build vs buy, batch vs online, GitOps</span><span class="ag-time">~ 3 min</span></li>
+        <li><span class="ag-num">04</span><span class="ag-title"><b>Code / Live Demo</b> — MLflow tracking in 30 lines</span><span class="ag-time">~ 5 min</span></li>
+        <li><span class="ag-num">05</span><span class="ag-title"><b>Comparisons</b> — MLflow vs W&amp;B vs Kubeflow vs SageMaker vs Vertex vs DVC</span><span class="ag-time">~ 2 min</span></li>
+        <li><span class="ag-num">06</span><span class="ag-title"><b>Q&amp;A</b> — and where to start tomorrow</span><span class="ag-time">~ 2 min</span></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     SLIDE 3 — WHAT: definition
+     ===================================================================== -->
+<section class="slide" data-section="what">
+  <div class="slide-grid">
+    <div class="rail reveal">
+      <div class="section-num">01<small>What</small></div>
+      <div class="rail-bottom">
+        <div class="eyebrow">Definition</div>
+        <div class="nav-crumbs">
+          <span>Intro</span>
+          <span class="active">What</span>
+          <span>How</span>
+          <span>Trade-offs</span>
+          <span>Demo</span>
+          <span>vs.</span>
+        </div>
+      </div>
+    </div>
+    <div class="card reveal-right">
+      <div class="kicker">Definition</div>
+      <h1>MLOps is <em class="highlight">DevOps</em> for models.</h1>
+      <p class="lede"><b>A pipeline that turns raw data into a production model</b>, keeps it observable, and lets you roll it back. Five stages, all reproducible: <b>data → train → register → serve → monitor</b>.</p>
+      <ul class="bullet-list">
+        <li><b>Reproducible</b> — same code + same data + same seed = same model. Versioned everywhere.</li>
+        <li><b>Automated</b> — retrain on a schedule or a trigger (data drift, new label batch, calendar).</li>
+        <li><b>Observable</b> — you know when accuracy quietly tanks at 3am, before the user does.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     SLIDE 4 — WHAT: the 5 stages
+     ===================================================================== -->
+<section class="slide" data-section="what">
+  <div class="slide-grid">
+    <div class="rail reveal">
+      <div class="section-num">01<small>What</small></div>
+      <div class="rail-bottom">
+        <div class="eyebrow">The five stages</div>
+        <div class="nav-crumbs">
+          <span>Intro</span>
+          <span class="active">What</span>
+          <span>How</span>
+          <span>Trade-offs</span>
+          <span>Demo</span>
+          <span>vs.</span>
+        </div>
+      </div>
+    </div>
+    <div class="card dark reveal-right">
+      <div class="kicker">The pipeline</div>
+      <h2>Five stages, end-to-end.</h2>
+      <div class="stages">
+        <div class="stage"><span class="n">01</span><span class="lbl">Data</span><span class="desc">Ingest, validate, version. Feature store or DVC.</span></div>
+        <div class="stage"><span class="n">02</span><span class="lbl">Train</span><span class="desc">Run jobs. Track params, metrics, artifacts.</span></div>
+        <div class="stage"><span class="n">03</span><span class="lbl">Register</span><span class="desc">Promote artifact: Staging → Production.</span></div>
+        <div class="stage"><span class="n">04</span><span class="lbl">Serve</span><span class="desc">REST/gRPC. Batch or online. Autoscale.</span></div>
+        <div class="stage"><span class="n">05</span><span class="lbl">Monitor</span><span class="desc">Drift, latency, accuracy. Page on regression.</span></div>
+      </div>
+      <p class="lede" style="margin-top: 1vh; opacity: 0.85;">Each stage emits artifacts. Each artifact is signed, versioned, and reproducible from upstream inputs — same contract you already use for container images.</p>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     SLIDE 5 — WHAT: DevOps analogues
+     ===================================================================== -->
+<section class="slide" data-section="what">
+  <div class="slide-grid">
+    <div class="rail reveal">
+      <div class="section-num">01<small>What</small></div>
+      <div class="rail-bottom">
+        <div class="eyebrow">DevOps ↔ MLOps</div>
+        <div class="nav-crumbs">
+          <span>Intro</span>
+          <span class="active">What</span>
+          <span>How</span>
+          <span>Trade-offs</span>
+          <span>Demo</span>
+          <span>vs.</span>
+        </div>
+      </div>
+    </div>
+    <div class="card paper reveal-right">
+      <div class="kicker">You already run this</div>
+      <h2>Same primitives. New artifact.</h2>
+      <table class="cmp-table">
+        <thead>
+          <tr>
+            <th style="width: 28%;">MLOps stage</th>
+            <th style="width: 36%;">DevOps analogue</th>
+            <th>What's different</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="stage-name">Feature store</td><td><code>config service</code> / shared schema</td><td>Schema drift breaks training silently. Validate.</td></tr>
+          <tr><td class="stage-name">Experiment tracker</td><td><code>CI build logs</code> + artifacts</td><td>Compare across runs, not just last green.</td></tr>
+          <tr><td class="stage-name">Model registry</td><td><code>container registry</code></td><td>Stages (Staging/Prod). Signed, immutable.</td></tr>
+          <tr><td class="stage-name">Model serving</td><td><code>service deployment</code></td><td>Canary by traffic %, shadow, A/B by user.</td></tr>
+          <tr><td class="stage-name">Drift monitoring</td><td><code>APM</code> + <code>SLO/SLI</code></td><td>Input distribution &amp; accuracy decay, not just latency.</td></tr>
+          <tr><td class="stage-name">Retraining</td><td><code>scheduled cron</code> + auto-rebuild</td><td>Triggered by data, not code commits.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     SLIDE 6 — HOW: architecture diagram
+     ===================================================================== -->
+<section class="slide" data-section="how">
+  <div class="slide-grid">
+    <div class="rail reveal">
+      <div class="section-num">02<small>How</small></div>
+      <div class="rail-bottom">
+        <div class="eyebrow">Architecture</div>
+        <div class="nav-crumbs">
+          <span>Intro</span>
+          <span>What</span>
+          <span class="active">How</span>
+          <span>Trade-offs</span>
+          <span>Demo</span>
+          <span>vs.</span>
+        </div>
+      </div>
+    </div>
+    <div class="card dark reveal-right">
+      <div class="kicker">Reference architecture</div>
+      <h2>Under the hood.</h2>
+      <div class="arch">
+        <div class="arch-row">
+          <div class="arch-label">Data</div>
+          <div class="arch-boxes" style="grid-template-columns: 1fr 1fr;">
+            <div class="arch-box"><span class="name">Feature Store</span><span class="tools">Feast · Tecton</span></div>
+            <div class="arch-box"><span class="name">Data Versioning</span><span class="tools">DVC · LakeFS</span></div>
+          </div>
+        </div>
+        <div class="arch-row">
+          <div class="arch-label">Train</div>
+          <div class="arch-boxes" style="grid-template-columns: 1fr 1fr;">
+            <div class="arch-box"><span class="name">Orchestrator</span><span class="tools">Airflow · Prefect · Argo</span></div>
+            <div class="arch-box accent"><span class="name">Experiment Tracker</span><span class="tools">MLflow · W&amp;B</span></div>
+          </div>
+        </div>
+        <div class="arch-row">
+          <div class="arch-label">Reg.</div>
+          <div class="arch-boxes">
+            <div class="arch-box accent"><span class="name">Model Registry</span><span class="tools">MLflow Registry · Sagemaker MR · BentoML</span></div>
+          </div>
+        </div>
+        <div class="arch-row">
+          <div class="arch-label">Serve</div>
+          <div class="arch-boxes" style="grid-template-columns: 1fr 1fr 1fr;">
+            <div class="arch-box"><span class="name">Online</span><span class="tools">FastAPI · KServe</span></div>
+            <div class="arch-box"><span class="name">Batch</span><span class="tools">Spark · Ray · cron</span></div>
+            <div class="arch-box"><span class="name">Edge</span><span class="tools">ONNX · TFLite</span></div>
+          </div>
+        </div>
+        <div class="arch-row">
+          <div class="arch-label">Obs.</div>
+          <div class="arch-boxes" style="grid-template-columns: 1fr 1fr;">
+            <div class="arch-box"><span class="name">Drift / Quality</span><span class="tools">Evidently · WhyLogs</span></div>
+            <div class="arch-box"><span class="name">Infra Metrics</span><span class="tools">Prometheus · Grafana</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     SLIDE 7 — HOW: data + orchestration layer
+     ===================================================================== -->
+<section class="slide" data-section="how">
+  <div class="slide-grid">
+    <div class="rail reveal">
+      <div class="section-num">02<small>How</small></div>
+      <div class="rail-bottom">
+        <div class="eyebrow">Data layer</div>
+        <div class="nav-crumbs">
+          <span>Intro</span>
+          <span>What</span>
+          <span class="active">How</span>
+          <span>Trade-offs</span>
+          <span>Demo</span>
+          <span>vs.</span>
+        </div>
+      </div>
+    </div>
+    <div class="card reveal-right">
+      <div class="kicker">Data + orchestration</div>
+      <h2>Feed the beast.</h2>
+      <ul class="bullet-list">
+        <li><b>Feature store</b> (<code>Feast</code>, <code>Tecton</code>) — single source of truth for features. Same code path training and serving — kills training/serving skew.</li>
+        <li><b>Data versioning</b> (<code>DVC</code>, <code>LakeFS</code>) — git-like history for datasets. Hash + pointer, not the bytes in git.</li>
+        <li><b>Orchestrator</b> (<code>Airflow</code>, <code>Prefect</code>, <code>Argo</code>) — DAG of training jobs. Same role as Jenkins for code, but ML-aware.</li>
+        <li><b>Triggers</b> — schedule, data drift threshold, manual approval. Treat retraining as a deploy event.</li>
+        <li><b>Validation gates</b> (<code>Great Expectations</code>) — fail the pipeline if input schema breaks. Cheaper to fail at ingest than at inference.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     SLIDE 8 — HOW: tracking + registry
+     ===================================================================== -->
+<section class="slide" data-section="how">
+  <div class="slide-grid">
+    <div class="rail reveal">
+      <div class="section-num">02<small>How</small></div>
+      <div class="rail-bottom">
+        <div class="eyebrow">Train + register</div>
+        <div class="nav-crumbs">
+          <span>Intro</span>
+          <span>What</span>
+          <span class="active">How</span>
+          <span>Trade-offs</span>
+          <span>Demo</span>
+          <span>vs.</span>
+        </div>
+      </div>
+    </div>
+    <div class="card paper reveal-right">
+      <div class="kicker">Tracking + registry</div>
+      <h2>Every run is an artifact.</h2>
+      <ul class="bullet-list">
+        <li><b>Experiment tracker</b> — every <code>fit()</code> logs params, metrics, code SHA, dataset hash, environment. Reproducible build, but for a model.</li>
+        <li><b>Model registry</b> — promotion lanes (<code>None → Staging → Production → Archived</code>). Same shape as your container registry, with semver-style aliases.</li>
+        <li><b>Lineage</b> — registry row points back to the run, the run points back to the dataset version. Trace a prod prediction back to its training data in 30 seconds.</li>
+        <li><b>Approval gates</b> — flip the stage label via API/UI. Wrap it in your existing change-management process.</li>
+        <li><b>Signing &amp; SBOM</b> — sign model artifacts; track Python deps. Yes, supply-chain attacks target ML too.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     SLIDE 9 — HOW: serving + monitoring
+     ===================================================================== -->
+<section class="slide" data-section="how">
+  <div class="slide-grid">
+    <div class="rail reveal">
+      <div class="section-num">02<small>How</small></div>
+      <div class="rail-bottom">
+        <div class="eyebrow">Serve + observe</div>
+        <div class="nav-crumbs">
+          <span>Intro</span>
+          <span>What</span>
+          <span class="active">How</span>
+          <span>Trade-offs</span>
+          <span>Demo</span>
+          <span>vs.</span>
+        </div>
+      </div>
+    </div>
+    <div class="card dark reveal-right">
+      <div class="kicker">Serving + observability</div>
+      <h2>Ship it. Watch it.</h2>
+      <ul class="bullet-list">
+        <li><b>Online serving</b> — <code>FastAPI</code> for prototypes; <code>KServe</code> / <code>Seldon</code> / <code>BentoML</code> for k8s-native autoscaling, canary, traffic split.</li>
+        <li><b>Batch serving</b> — Spark / Ray / cron writing predictions to a warehouse. Cheaper, no SLA on tail latency.</li>
+        <li><b>Drift monitoring</b> (<code>Evidently</code>, <code>WhyLogs</code>) — compare input distribution today vs training day. Page when KS-test or PSI crosses threshold.</li>
+        <li><b>Quality monitoring</b> — once labels arrive, recompute accuracy/AUC on production data. The thing that actually matters.</li>
+        <li><b>Infra metrics</b> — <code>Prometheus</code> for QPS, p99 latency, OOM. Same dashboards you already have.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     SLIDE 10 — TRADE-OFFS: platform vs stack
+     ===================================================================== -->
+<section class="slide" data-section="trade-offs">
+  <div class="slide-grid">
+    <div class="rail reveal">
+      <div class="section-num">03<small>Trade-offs</small></div>
+      <div class="rail-bottom">
+        <div class="eyebrow">Architecture choices</div>
+        <div class="nav-crumbs">
+          <span>Intro</span>
+          <span>What</span>
+          <span>How</span>
+          <span class="active">Trade-offs</span>
+          <span>Demo</span>
+          <span>vs.</span>
+        </div>
+      </div>
+    </div>
+    <div class="card reveal-right">
+      <div class="kicker">Build vs buy</div>
+      <h2>Monolithic platform vs composable stack.</h2>
+      <div class="pc-grid">
+        <div class="pc-col pros">
+          <h4>Monolith (SageMaker / Vertex)</h4>
+          <ul>
+            <li>One vendor, one bill, one auth surface.</li>
+            <li>Day-1 productive: managed everything.</li>
+            <li>Strong defaults — drift, monitoring, registry all wired.</li>
+            <li>SOC2/HIPAA boundaries already drawn.</li>
+          </ul>
+        </div>
+        <div class="pc-col cons">
+          <h4>Trade-off</h4>
+          <ul>
+            <li>Lock-in: SDK + storage + identity all proprietary.</li>
+            <li>Egress is painful; multi-cloud is harder.</li>
+            <li>You inherit the vendor's opinions even when they hurt.</li>
+            <li>Premium-priced compute compared to raw EC2/GKE.</li>
+          </ul>
+        </div>
+        <div class="pc-col pros">
+          <h4>Composable (MLflow + KServe + Evidently)</h4>
+          <ul>
+            <li>OSS — fork, audit, run anywhere (incl. on-prem).</li>
+            <li>Best-of-breed per layer; swap without rewriting.</li>
+            <li>Cheaper at scale; you pay for compute, not the brand.</li>
+            <li>Skills transfer between jobs.</li>
+          </ul>
+        </div>
+        <div class="pc-col cons">
+          <h4>Trade-off</h4>
+          <ul>
+            <li>You own the seams. Glue code, upgrades, on-call.</li>
+            <li>Auth/RBAC across 4 systems is not free.</li>
+            <li>Day-1 setup is weeks, not hours.</li>
+            <li>Drift detection is opt-in — easy to skip.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     SLIDE 11 — TRADE-OFFS: serving + GitOps
+     ===================================================================== -->
+<section class="slide" data-section="trade-offs">
+  <div class="slide-grid">
+    <div class="rail reveal">
+      <div class="section-num">03<small>Trade-offs</small></div>
+      <div class="rail-bottom">
+        <div class="eyebrow">Operational choices</div>
+        <div class="nav-crumbs">
+          <span>Intro</span>
+          <span>What</span>
+          <span>How</span>
+          <span class="active">Trade-offs</span>
+          <span>Demo</span>
+          <span>vs.</span>
+        </div>
+      </div>
+    </div>
+    <div class="card paper reveal-right">
+      <div class="kicker">Day-2 decisions</div>
+      <h2>How you actually run it.</h2>
+      <table class="cmp-table">
+        <thead>
+          <tr>
+            <th style="width: 26%;">Decision</th>
+            <th style="width: 37%;">Pick when…</th>
+            <th>Watch out for…</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="stage-name">Online vs batch serving</td>
+            <td><b>Online</b>: low-latency, per-request. <b>Batch</b>: nightly predictions to a table.</td>
+            <td>Online costs more &amp; needs on-call. Batch goes stale between runs.</td>
+          </tr>
+          <tr>
+            <td class="stage-name">GitOps for models</td>
+            <td>You want PR review, audit, rollback by commit revert. Promotion = merge.</td>
+            <td>Model binaries don't belong in git. Store hashes, not weights.</td>
+          </tr>
+          <tr>
+            <td class="stage-name">Imperative deploys</td>
+            <td>Small team, fast iteration, no compliance pressure.</td>
+            <td>"Who deployed which model where?" becomes unanswerable.</td>
+          </tr>
+          <tr>
+            <td class="stage-name">Drift detection</td>
+            <td>High-impact predictions (finance, health), or non-stationary data.</td>
+            <td>Cost (storage + compute). Alert fatigue if threshold too tight.</td>
+          </tr>
+          <tr>
+            <td class="stage-name">Auto-retraining</td>
+            <td>Data shifts faster than humans can react (e.g., recsys, fraud).</td>
+            <td>A bad retrain ships a bad model. Always gate on eval set.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     SLIDE 12 — CODE/DEMO intro
+     ===================================================================== -->
+<section class="slide" data-section="demo">
+  <div class="slide-grid">
+    <div class="rail reveal">
+      <div class="section-num">04<small>Demo</small></div>
+      <div class="rail-bottom">
+        <div class="eyebrow">Live demo</div>
+        <div class="nav-crumbs">
+          <span>Intro</span>
+          <span>What</span>
+          <span>How</span>
+          <span>Trade-offs</span>
+          <span class="active">Demo</span>
+          <span>vs.</span>
+        </div>
+      </div>
+    </div>
+    <div class="card reveal-right">
+      <div class="kicker">Live demo · MlFlowStarter</div>
+      <h1>MLflow in <em class="highlight">30 lines.</em></h1>
+      <p class="lede">Goal: prove the tracker + UI loop works locally, then point at it from a notebook. Three steps:</p>
+      <ul class="bullet-list">
+        <li><b>1. Start tracking server</b> — <code>mlflow ui --port 5001</code>. SQLite backend, file artifacts.</li>
+        <li><b>2. Point notebook at it</b> — <code>mlflow.set_tracking_uri(...)</code> + <code>set_experiment(...)</code>.</li>
+        <li><b>3. Wrap any code in a run</b> — <code>with mlflow.start_run():</code> and log metrics. UI updates live.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     SLIDE 13 — CODE: start tracking server
+     ===================================================================== -->
+<section class="slide" data-section="demo">
+  <div class="slide-grid">
+    <div class="rail reveal">
+      <div class="section-num">04<small>Demo</small></div>
+      <div class="rail-bottom">
+        <div class="eyebrow">Step 1 · server</div>
+        <div class="nav-crumbs">
+          <span>Intro</span>
+          <span>What</span>
+          <span>How</span>
+          <span>Trade-offs</span>
+          <span class="active">Demo</span>
+          <span>vs.</span>
+        </div>
+      </div>
+    </div>
+    <div class="card dark reveal-right">
+      <div class="kicker">Step 1 — tracking server</div>
+      <h3>Start the tracker locally.</h3>
+      <div class="code-block-label">terminal · MlFlowStarter/</div>
+<pre class="code-block"><span class="prompt">$</span> cd MlFlowStarter
+<span class="prompt">$</span> pip install -r requirements.txt   <span class="cmt"># mlflow, scikit-learn, pandas, numpy</span>
+<span class="prompt">$</span> mlflow ui --port 5001
+<span class="cmt">[INFO] Listening at: http://127.0.0.1:5001</span>
+<span class="cmt">[INFO] Backend: sqlite:///mlflow.db  Artifacts: ./mlruns</span></pre>
+      <p class="lede" style="opacity: 0.85;">UI + REST API on the same port. <code>:5001</code> instead of <code>:5000</code> to dodge macOS AirPlay. Backend store + artifact store are two different things — for prod, point at Postgres + S3.</p>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     SLIDE 14 — CODE: log a run
+     ===================================================================== -->
+<section class="slide" data-section="demo">
+  <div class="slide-grid">
+    <div class="rail reveal">
+      <div class="section-num">04<small>Demo</small></div>
+      <div class="rail-bottom">
+        <div class="eyebrow">Step 2 · log run</div>
+        <div class="nav-crumbs">
+          <span>Intro</span>
+          <span>What</span>
+          <span>How</span>
+          <span>Trade-offs</span>
+          <span class="active">Demo</span>
+          <span>vs.</span>
+        </div>
+      </div>
+    </div>
+    <div class="card dark reveal-right">
+      <div class="kicker">Step 2 — log a run</div>
+      <h3>Point the notebook at the tracker.</h3>
+      <div class="code-block-label">python · get-started.ipynb</div>
+<pre class="code-block"><span class="kw">import</span> mlflow
+
+mlflow.<span class="fn">set_tracking_uri</span>(<span class="str">"http://127.0.0.1:5001"</span>)
+mlflow.<span class="fn">set_experiment</span>(<span class="str">"Check localhost connection"</span>)
+
+<span class="kw">with</span> mlflow.<span class="fn">start_run</span>():
+    mlflow.<span class="fn">log_metric</span>(<span class="str">"test"</span>, <span class="num">1</span>)
+    mlflow.<span class="fn">log_metric</span>(<span class="str">"Name"</span>, <span class="num">2</span>)</pre>
+      <p class="lede" style="opacity: 0.85;">Same shape for a 30-line toy and a 30M-param model: experiment → run → log. Add <code>log_param</code>, <code>log_artifact</code>, <code>log_model</code> and you're production-shaped.</p>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     SLIDE 15 — DEMO: screenshot fallback
+     ===================================================================== -->
+<section class="slide" data-section="demo">
+  <div class="slide-grid">
+    <div class="rail reveal">
+      <div class="section-num">04<small>Demo</small></div>
+      <div class="rail-bottom">
+        <div class="eyebrow">Fallback</div>
+        <div class="nav-crumbs">
+          <span>Intro</span>
+          <span>What</span>
+          <span>How</span>
+          <span>Trade-offs</span>
+          <span class="active">Demo</span>
+          <span>vs.</span>
+        </div>
+      </div>
+    </div>
+    <div class="card paper reveal-right" style="gap: 0.8vh;">
+      <div class="kicker">Fallback · MLflow UI</div>
+      <h3>What you should see at <code>:5001</code>.</h3>
+      <div class="screenshot-frame">
+        <div class="screenshot-bar">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span class="url">http://127.0.0.1:5001/#/experiments/1</span>
+        </div>
+        <div class="screenshot-body">
+          <!-- Drop your MLflow UI screenshot here:
+               <img src="assets/mlflow-ui.png" alt="MLflow UI">
+               Recommended max size: 1600x900. Keep file < 500KB. -->
+          <div class="screenshot-placeholder">
+            <div class="icon">[ MLflow UI ]</div>
+            <div>Experiment: <code>Check localhost connection</code></div>
+            <div>Run: <code>overjoyed-auk-827</code> · metrics: test=1, Name=2</div>
+            <div class="hint">Replace this placeholder with a real screenshot:<br><code>presentation/assets/mlflow-ui.png</code> → swap <code>.screenshot-placeholder</code> for <code>&lt;img src="assets/mlflow-ui.png"&gt;</code>.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     SLIDE 16 — COMPARISONS
+     ===================================================================== -->
+<section class="slide" data-section="vs">
+  <div class="slide-grid">
+    <div class="rail reveal">
+      <div class="section-num">05<small>vs.</small></div>
+      <div class="rail-bottom">
+        <div class="eyebrow">Tooling landscape</div>
+        <div class="nav-crumbs">
+          <span>Intro</span>
+          <span>What</span>
+          <span>How</span>
+          <span>Trade-offs</span>
+          <span>Demo</span>
+          <span class="active">vs.</span>
+        </div>
+      </div>
+    </div>
+    <div class="card paper reveal-right">
+      <div class="kicker">Pick your poison</div>
+      <h2>Tooling, side-by-side.</h2>
+      <table class="cmp-table">
+        <thead>
+          <tr>
+            <th style="width:12%;">Tool</th>
+            <th style="width:12%;">Track</th>
+            <th style="width:12%;">Registry</th>
+            <th style="width:12%;">Serving</th>
+            <th style="width:14%;">Orchestration</th>
+            <th style="width:14%;">Hosting</th>
+            <th>Lock-in</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="stage-name">MLflow</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="meh">Basic</td><td class="no">No</td><td>OSS, self-host</td><td class="yes">Low</td></tr>
+          <tr><td class="stage-name">W&amp;B</td><td class="yes">Yes (best)</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td><td>SaaS (paid)</td><td class="meh">Med</td></tr>
+          <tr><td class="stage-name">Kubeflow</td><td class="meh">Add-on</td><td class="meh">Add-on</td><td class="yes">KServe</td><td class="yes">Pipelines</td><td>OSS, k8s</td><td class="yes">Low</td></tr>
+          <tr><td class="stage-name">SageMaker</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td><td>AWS managed</td><td class="no">High</td></tr>
+          <tr><td class="stage-name">Vertex AI</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td><td>GCP managed</td><td class="no">High</td></tr>
+          <tr><td class="stage-name">DVC</td><td class="meh">Data only</td><td class="no">No</td><td class="no">No</td><td class="meh">Pipelines</td><td>OSS + remote</td><td class="yes">Low</td></tr>
+        </tbody>
+      </table>
+      <p class="lede" style="font-size: var(--small-size); opacity: 0.75; margin-top: 0.8vh;">Reality: most teams compose. <b>MLflow + DVC + KServe + Evidently</b> on k8s is the OSS default. <b>SageMaker / Vertex</b> is the &ldquo;one bill&rdquo; default. W&amp;B is best-in-class for tracking when budget allows.</p>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     SLIDE 17 — CLOSING / Q&A
+     ===================================================================== -->
+<section class="slide" data-section="close">
+  <div class="slide-grid">
+    <div class="rail reveal">
+      <div class="section-num">06<small>End</small></div>
+      <div class="rail-bottom">
+        <div class="eyebrow">Q &amp; A</div>
+        <div class="nav-crumbs">
+          <span>Intro</span>
+          <span>What</span>
+          <span>How</span>
+          <span>Trade-offs</span>
+          <span>Demo</span>
+          <span class="active">vs.</span>
+        </div>
+      </div>
+    </div>
+    <div class="card reveal-right">
+      <div class="kicker">Take-home</div>
+      <h1>Start <em class="highlight">small.</em><br>Ship the loop.</h1>
+      <p class="lede"><b>Day 1:</b> add MLflow to one notebook. <b>Week 1:</b> register a model, deploy behind FastAPI. <b>Month 1:</b> add drift dashboard. You're now doing MLOps — same muscles you already have, new artifact.</p>
+      <ul class="bullet-list">
+        <li><b>Repo</b> — <code>github.com/rodrigodlima/mlops-playground</code> · the notebook from this demo.</li>
+        <li><b>Read next</b> — <i>Made With ML</i>, Google's MLOps maturity model, MLflow docs.</li>
+        <li><b>Ask me anything.</b> Architecture, vendor pain, on-call horror stories.</li>
+      </ul>
+      <div class="meta">
+        <div class="meta-item"><div class="k">Contact</div><div class="v">rodrigodlima</div></div>
+        <div class="meta-item"><div class="k">Slides</div><div class="v">↗ HTML</div></div>
+        <div class="meta-item"><div class="k">Demo</div><div class="v">:5001</div></div>
+        <div class="meta-item"><div class="k">Thanks</div><div class="v">→ Q&amp;A</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+/* =====================================================================
+   SLIDE PRESENTATION CONTROLLER
+   - keyboard nav, touch swipe, wheel
+   - progress bar + nav dots
+   - IntersectionObserver for .visible animations
+   ===================================================================== */
+class SlidePresentation {
+  constructor() {
+    this.slides = Array.from(document.querySelectorAll('.slide'));
+    this.currentSlide = 0;
+    this.setupIntersectionObserver();
+    this.setupKeyboardNav();
+    this.setupTouchNav();
+    this.setupWheelNav();
+    this.setupProgressBar();
+    this.setupNavDots();
+    this.activateFirst();
+  }
+  activateFirst() {
+    // Mark the first slide visible immediately so initial reveal fires.
+    requestAnimationFrame(() => this.slides[0].classList.add('visible'));
+  }
+  setupIntersectionObserver() {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          const idx = this.slides.indexOf(entry.target);
+          if (idx >= 0) {
+            this.currentSlide = idx;
+            this.updateNavDots();
+            this.updateProgressBar();
+          }
+        }
+      });
+    }, { threshold: 0.5 });
+    this.slides.forEach(s => io.observe(s));
+  }
+  setupKeyboardNav() {
+    document.addEventListener('keydown', (e) => {
+      // Don't intercept keys while editing text
+      if (e.target.getAttribute('contenteditable') === 'true') return;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        e.preventDefault();
+        this.goTo(this.currentSlide + 1);
+      } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        this.goTo(this.currentSlide - 1);
+      } else if (e.key === 'Home') {
+        this.goTo(0);
+      } else if (e.key === 'End') {
+        this.goTo(this.slides.length - 1);
+      }
+    });
+  }
+  setupTouchNav() {
+    let startY = 0;
+    document.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; }, { passive: true });
+    document.addEventListener('touchend', (e) => {
+      const dy = startY - e.changedTouches[0].clientY;
+      if (Math.abs(dy) > 50) this.goTo(this.currentSlide + (dy > 0 ? 1 : -1));
+    }, { passive: true });
+  }
+  setupWheelNav() {
+    // Scroll-snap handles it — no extra logic needed; observer keeps state in sync.
+  }
+  goTo(i) {
+    const target = Math.max(0, Math.min(this.slides.length - 1, i));
+    this.slides[target].scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  setupProgressBar() { this.progressBar = document.getElementById('progressBar'); this.updateProgressBar(); }
+  updateProgressBar() {
+    const pct = (this.currentSlide / (this.slides.length - 1)) * 100;
+    this.progressBar.style.width = pct + '%';
+  }
+  setupNavDots() {
+    const nav = document.getElementById('navDots');
+    this.slides.forEach((_, i) => {
+      const b = document.createElement('button');
+      b.setAttribute('aria-label', `Slide ${i + 1}`);
+      b.addEventListener('click', () => this.goTo(i));
+      nav.appendChild(b);
+    });
+    this.updateNavDots();
+  }
+  updateNavDots() {
+    document.querySelectorAll('#navDots button').forEach((b, i) => {
+      b.classList.toggle('active', i === this.currentSlide);
+    });
+  }
+}
+
+/* =====================================================================
+   INLINE EDITOR — opt-in
+   - hotzone hover (400ms grace) shows toggle
+   - press E to toggle
+   - autosave to localStorage
+   - Save HTML button downloads edited deck
+   ===================================================================== */
+class InlineEditor {
+  constructor() {
+    this.isActive = false;
+    this.STORAGE_KEY = 'mlops-pipeline-edits-v1';
+    this.toggle = document.getElementById('editToggle');
+    this.hotzone = document.querySelector('.edit-hotzone');
+    this.saveBtn = document.getElementById('editSave');
+    this.toast = document.getElementById('editToast');
+    this.hideTimeout = null;
+
+    this.editableSelector = 'h1, h2, h3, h4, p, li, .lede, .title-tagline, .meta-item .v, .stage .lbl, .stage .desc, .kicker, .ag-title, .ag-time';
+
+    this.restore();
+    this.bind();
+  }
+  bind() {
+    // Click on toggle button
+    this.toggle.addEventListener('click', () => this.toggleMode());
+    // Click on hotzone
+    this.hotzone.addEventListener('click', () => this.toggleMode());
+    // Hover behavior with 400ms grace period
+    this.hotzone.addEventListener('mouseenter', () => {
+      clearTimeout(this.hideTimeout);
+      this.toggle.classList.add('show');
+    });
+    this.hotzone.addEventListener('mouseleave', () => {
+      this.hideTimeout = setTimeout(() => {
+        if (!this.isActive) this.toggle.classList.remove('show');
+      }, 400);
+    });
+    this.toggle.addEventListener('mouseenter', () => clearTimeout(this.hideTimeout));
+    this.toggle.addEventListener('mouseleave', () => {
+      this.hideTimeout = setTimeout(() => {
+        if (!this.isActive) this.toggle.classList.remove('show');
+      }, 400);
+    });
+    // E key
+    document.addEventListener('keydown', (e) => {
+      if ((e.key === 'e' || e.key === 'E') && e.target.getAttribute('contenteditable') !== 'true') {
+        e.preventDefault();
+        this.toggleMode();
+      }
+    });
+    // Save button
+    this.saveBtn.addEventListener('click', () => this.downloadHTML());
+  }
+  toggleMode() {
+    this.isActive = !this.isActive;
+    document.querySelectorAll(this.editableSelector).forEach(el => {
+      if (this.isActive) {
+        el.setAttribute('contenteditable', 'true');
+        el.addEventListener('blur', this.handleBlur);
+      } else {
+        el.setAttribute('contenteditable', 'false');
+      }
+    });
+    this.toggle.classList.toggle('active', this.isActive);
+    this.toggle.classList.toggle('show', this.isActive);
+    this.saveBtn.classList.toggle('show', this.isActive);
+    this.toggle.textContent = this.isActive ? '✓' : '✎';
+    this.toggle.title = this.isActive ? 'Done editing (E)' : 'Edit mode (E)';
+    if (this.isActive) this.showToast('Edit mode on — click any text.');
+    else this.showToast('Edit mode off.');
+  }
+  handleBlur = () => { this.persist(); };
+  persist() {
+    const edits = {};
+    document.querySelectorAll(this.editableSelector).forEach((el, idx) => {
+      edits[idx] = el.innerHTML;
+    });
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(edits));
+      this.showToast('Saved locally.');
+    } catch (err) {
+      console.warn('localStorage write failed', err);
+    }
+  }
+  restore() {
+    try {
+      const raw = localStorage.getItem(this.STORAGE_KEY);
+      if (!raw) return;
+      const edits = JSON.parse(raw);
+      document.querySelectorAll(this.editableSelector).forEach((el, idx) => {
+        if (edits[idx] !== undefined) el.innerHTML = edits[idx];
+      });
+    } catch (err) {
+      console.warn('localStorage restore failed', err);
+    }
+  }
+  showToast(msg) {
+    this.toast.textContent = msg;
+    this.toast.classList.add('show');
+    clearTimeout(this._toastT);
+    this._toastT = setTimeout(() => this.toast.classList.remove('show'), 1600);
+  }
+  downloadHTML() {
+    // Snapshot current DOM as a self-contained HTML file
+    const clone = document.documentElement.cloneNode(true);
+    // Remove contenteditable attrs from the snapshot
+    clone.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+    // Remove the editor UI from snapshot
+    clone.querySelectorAll('.edit-toggle, .edit-save, .edit-hotzone, .edit-toast').forEach(el => el.remove());
+    const html = '<!DOCTYPE html>\n' + clone.outerHTML;
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'mlops-pipeline-edited.html';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    this.showToast('Downloaded.');
+  }
+}
+
+// Boot
+new SlidePresentation();
+new InlineEditor();
+</script>
+</body>
+</html>
