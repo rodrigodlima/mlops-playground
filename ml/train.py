@@ -1,4 +1,4 @@
-"""Train wine quality classifier, log run to MLflow."""
+"""Train Kubernetes failure classifier, log run to MLflow."""
 from __future__ import annotations
 
 import mlflow
@@ -10,7 +10,7 @@ from sklearn.model_selection import cross_val_score
 from data.loader import load, save_baseline
 from data.validator import validate
 
-EXPERIMENT = "wine-quality"
+EXPERIMENT = "k8s-failure-detection"
 
 
 def train(
