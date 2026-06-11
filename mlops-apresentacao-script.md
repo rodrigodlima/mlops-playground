@@ -18,7 +18,7 @@ And without a tracking system, everything becomes confusing. You have many files
 
 I think many people here have files like that.
 
-So, a tracking **tool** like **MLflow** helps solve this problem. Every time you train a model, it automatically saves: the **parameters** you used — the metrics you got — and the **model file**.
+So, a tracking **tool** like **MLflow** helps solve this problem. Every time you train a model, it saves everything for you: the **parameters** you used — the metrics you got — and the **model file**.
 
 In the end, you have one **table** where you can see **all** your experiments and compare them easily.
 
@@ -32,7 +32,7 @@ And we also get two important things: we can build the same model again — we k
 
 So, in machine learning, we have to test more than regular software.
 
-We still write the normal code tests — does the function do what it should?
+We still write the normal code tests — is the code correct? Does it work?
 
 But we add two new types of tests.
 
@@ -44,7 +44,7 @@ And second, model tests: before a model goes live — is it really good enough?
 
 Now, we don't just look at the **overall accuracy**. We check the model on important parts of the data — we check it for fairness — and, most important, we compare it against the model already in production.
 
-And that last check is the safety net of MLOps: a new model is only promoted if it beats the current model. If not — the **pipeline** blocks it automatically.
+And that last check is our safety net: the new model must win. If not — the **pipeline** blocks it.
 
 No human has to catch the mistake.
 
@@ -68,7 +68,7 @@ OK — so we monitor on three levels. First, infrastructure: **latency**, memory
 
 Second, data: do the inputs still look like the **data** we trained on? And third, the model: is the **accuracy**, or the business metric, still good?
 
-Now, when any of these crosses a limit, we fire an alert — and, if possible, we start an automatic re-train.
+Now, when any of these crosses a limit, we fire an alert — and, if possible, the **pipeline** starts a re-train, **by itself**.
 
 And that closes the loop — you can see it here on the slide. In the end, **monitoring** is what makes MLOps a living **cycle** — and not a one-time launch.
 
