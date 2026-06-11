@@ -2,13 +2,11 @@
 
 **Legenda:** palavras em **negrito** = palavras VIP (desacelere e capriche) · travessão ( — ) = pausa curta · 🖥️ = troca de slide (diga "Next slide, please" ou faça o sinal combinado)
 
-> ⚠️ Ajuste os números dos slides conforme o seu deck real antes de enviar ao colega.
-
 ---
 
 ## Component three: experiment tracking
 
-🖥️ **[SLIDE — Experiment Tracking]**
+🖥️ **[SLIDE 11 — Experiment Tracking: From chaos to clarity]**
 
 Now, this part is very important for **data scientists** — so I want to talk about it **by itself**.
 
@@ -20,7 +18,7 @@ And without a tracking system, everything becomes confusing. You have many files
 
 I think many people here have files like that.
 
-So, a tracking **tool** like **MLflow** helps solve this problem. 🖥️ **[SLIDE — MLflow]** Every time you train a model, it automatically saves: the **parameters** you used — the metrics you got — and the **model file**.
+So, a tracking **tool** like **MLflow** helps solve this problem. Every time you train a model, it automatically saves: the **parameters** you used — the metrics you got — and the **model file**.
 
 In the end, you have one **table** where you can see **all** your experiments and compare them easily.
 
@@ -30,7 +28,7 @@ And we also get two important things: we can build the same model again — we k
 
 ## Component four: tests
 
-🖥️ **[SLIDE — Tests]**
+🖥️ **[SLIDE 12 — Tests: Code / Data / Model]**
 
 So, in machine learning, we have to test more than regular software.
 
@@ -54,7 +52,7 @@ No human has to catch the mistake.
 
 ## Component five: monitoring
 
-🖥️ **[SLIDE — Monitoring]**
+🖥️ **[SLIDE 13 — Monitoring: living cycle diagram]**
 
 And the fifth component: **monitoring**. Now, for me, this is what really makes MLOps different from normal software.
 
@@ -62,7 +60,7 @@ Think about it: a normal app, with no bugs, stays the same forever. But a model 
 
 And this problem has a name — drift.
 
-So, there are two types. 🖥️ **[SLIDE — Drift]** Data drift is when the inputs change shape — for example, a new type of customer starts using the product.
+So, there are two types. Data drift is when the inputs change shape — for example, a new type of customer starts using the product.
 
 And concept drift is when the connection itself changes. Let's say — last year, a **pattern** **meant fraud**. Today — the same **pattern** is normal.
 
@@ -72,13 +70,13 @@ Second, data: do the inputs still look like the **data** we trained on? And thir
 
 Now, when any of these crosses a limit, we fire an alert — and, if possible, we start an automatic re-train.
 
-And that closes the loop we saw on slide five. In the end, **monitoring** is what makes MLOps a living **cycle** — and not a one-time launch.
+And that closes the loop — you can see it here on the slide. In the end, **monitoring** is what makes MLOps a living **cycle** — and not a one-time launch.
 
 ---
 
 ## The tools and the people
 
-🖥️ **[SLIDE — Tools & Roles]**
+🖥️ **[SLIDE 14 — Tools aren't random]**
 
 OK — let me quickly map the tools, so all these names land somewhere.
 
