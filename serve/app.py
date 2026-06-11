@@ -1,4 +1,4 @@
-"""FastAPI inference service — loads model from MLflow Registry (Production stage)."""
+"""FastAPI inference service — loads model from MLflow Registry (production alias)."""
 from __future__ import annotations
 
 from typing import List
@@ -8,16 +8,20 @@ from pydantic import BaseModel, Field
 
 from ml.predict import MODEL_ALIAS, MODEL_NAME, load_model, predict
 
-app = FastAPI(title="wine-quality-mlops", version="0.1.0")
+app = FastAPI(title="k8s-failure-mlops", version="0.1.0")
 
 
 class PredictRequest(BaseModel):
     instances: List[List[float]] = Field(
         ...,
-        description="List of 13-feature rows: [alcohol, malic_acid, ash, alcalinity_of_ash, "
-                    "magnesium, total_phenols, flavanoids, nonflavanoid_phenols, proanthocyanins, "
-                    "color_intensity, hue, od280_od315, proline]",
-        examples=[[[14.23, 1.71, 2.43, 15.6, 127.0, 2.8, 3.06, 0.28, 2.29, 5.64, 1.04, 3.92, 1065.0]]],
+        description=(
+            "List of 10-feature rows: [restart_count, cpu_usage_pct, memory_usage_pct, "
+            "pod_ready, last_exit_code, waiting_reason (ordinal), oom_killed_count, "
+            "image_pull_errors, failed_scheduling_events, readiness_probe_failures]. "
+            "waiting_reason encoding: CrashLoopBackOff=0, ErrImagePull=1, Error=2, "
+            "ImagePullBackOff=3, None=4, OOMKilled=5, Pending=6, Running=7, Unschedulable=8"
+        ),
+        examples=[[[0, 20.0, 30.0, 1, 0, 7, 0, 0, 0, 0]]],
     )
 
 

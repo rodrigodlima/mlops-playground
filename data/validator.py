@@ -1,4 +1,4 @@
-"""Validate wine dataset schema and feature ranges; log issues to MLflow."""
+"""Validate Kubernetes failure dataset schema and feature ranges; log issues to MLflow."""
 from __future__ import annotations
 
 import mlflow
@@ -7,22 +7,19 @@ import numpy as np
 from data.loader import FEATURE_NAMES
 
 SCHEMA = {
-    "n_features": 13,
-    "n_classes": 3,
+    "n_features": 10,
+    "n_classes": 6,
     "feature_ranges": {
-        "alcohol":                     (10.0, 16.0),
-        "malic_acid":                  (0.5,  6.5),
-        "ash":                         (1.0,  4.0),
-        "alcalinity_of_ash":           (9.0,  34.0),
-        "magnesium":                   (60.0, 180.0),
-        "total_phenols":               (0.5,  4.5),
-        "flavanoids":                  (0.1,  5.5),
-        "nonflavanoid_phenols":        (0.05, 0.75),
-        "proanthocyanins":             (0.2,  4.5),
-        "color_intensity":             (1.0,  14.0),
-        "hue":                         (0.4,  2.0),
-        "od280_od315_of_diluted_wines":(1.0,  4.5),
-        "proline":                     (200.0, 1800.0),
+        "restart_count":             (0.0,   100.0),
+        "cpu_usage_pct":             (0.0,   100.0),
+        "memory_usage_pct":          (0.0,   100.0),
+        "pod_ready":                 (0.0,   1.0),
+        "last_exit_code":            (0.0,   255.0),
+        "waiting_reason":            (0.0,   8.0),    # ordinal encoded
+        "oom_killed_count":          (0.0,   50.0),
+        "image_pull_errors":         (0.0,   50.0),
+        "failed_scheduling_events":  (0.0,   50.0),
+        "readiness_probe_failures":  (0.0,   50.0),
     },
 }
 

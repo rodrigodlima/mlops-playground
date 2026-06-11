@@ -10,7 +10,7 @@ import numpy as np
 
 from data.loader import TARGET_NAMES
 
-MODEL_NAME = "wine-quality-classifier"
+MODEL_NAME = "k8s-failure-classifier"
 MODEL_ALIAS = "production"
 
 
@@ -43,8 +43,9 @@ def predict(features: list[list[float]]) -> list[dict]:
 
 
 if __name__ == "__main__":
-    # Sample: first row from wine dataset (class_0)
+    # healthy pod: running, pod_ready=1, no errors
+    # waiting_reason=7 (Running), all counters=0
     raw = sys.stdin.read().strip() or (
-        "[[14.23, 1.71, 2.43, 15.6, 127.0, 2.8, 3.06, 0.28, 2.29, 5.64, 1.04, 3.92, 1065.0]]"
+        "[[0, 20.0, 30.0, 1, 0, 7, 0, 0, 0, 0]]"
     )
     print(json.dumps(predict(json.loads(raw)), indent=2))

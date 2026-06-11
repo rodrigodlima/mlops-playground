@@ -4,11 +4,12 @@
         kfp-setup kfp-build kfp-deploy-mlflow kfp-compile kfp-run kfp-ui kfp-mlflow-ui \
         clean
 
-PORT     ?= 8000
-PYTHON   ?= MlFlowStarter/venv/bin/python
-UVICORN  ?= MlFlowStarter/venv/bin/uvicorn
-MLFLOW   ?= MlFlowStarter/venv/bin/mlflow
-KFP_HOST ?= http://localhost:8080
+PORT           ?= 8000
+PYTHON         ?= MlFlowStarter/venv/bin/python
+PYTHON_KFP     ?= python3.11                    # kfp SDK requires Python < 3.14
+UVICORN        ?= MlFlowStarter/venv/bin/uvicorn
+MLFLOW         ?= MlFlowStarter/venv/bin/mlflow
+KFP_HOST       ?= http://localhost:8080
 MLFLOW_K8S_URI ?= http://mlflow-server:5000
 
 # ── Local pipeline (no Kubernetes) ──────────────────────────────────────────
@@ -92,10 +93,10 @@ kfp-deploy-mlflow:
 	@echo "MLflow NodePort: $$(minikube ip):30500"
 
 kfp-compile:
-	$(PYTHON) -m pipeline.pipeline compile
+	$(PYTHON_KFP) -m pipeline.pipeline compile
 
 kfp-run:
-	$(PYTHON) -m pipeline.pipeline run \
+	$(PYTHON_KFP) -m pipeline.pipeline run \
 		--kfp-host $(KFP_HOST) \
 		--mlflow-uri $(MLFLOW_K8S_URI)
 

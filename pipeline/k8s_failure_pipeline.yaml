@@ -1,0 +1,382 @@
+# PIPELINE DEFINITION
+# Name: k8s-failure-detection
+# Description: End-to-end MLOps: validate → train → register → promote → drift detection
+# Inputs:
+#    learning_rate: float [Default: 0.1]
+#    max_depth: int [Default: 3.0]
+#    mlflow_uri: str [Default: 'http://mlflow-server:5000']
+#    n_estimators: int [Default: 100.0]
+components:
+  comp-detect-drift-op:
+    executorLabel: exec-detect-drift-op
+    inputDefinitions:
+      parameters:
+        mlflow_uri:
+          parameterType: STRING
+        train_run_id:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-promote-model-op:
+    executorLabel: exec-promote-model-op
+    inputDefinitions:
+      parameters:
+        mlflow_uri:
+          parameterType: STRING
+        version:
+          parameterType: STRING
+  comp-register-model-op:
+    executorLabel: exec-register-model-op
+    inputDefinitions:
+      parameters:
+        mlflow_uri:
+          parameterType: STRING
+        run_id:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-train-model-op:
+    executorLabel: exec-train-model-op
+    inputDefinitions:
+      parameters:
+        learning_rate:
+          parameterType: NUMBER_DOUBLE
+        max_depth:
+          parameterType: NUMBER_INTEGER
+        mlflow_uri:
+          parameterType: STRING
+        n_estimators:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-validate-data-op:
+    executorLabel: exec-validate-data-op
+    inputDefinitions:
+      parameters:
+        mlflow_uri:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+deploymentSpec:
+  executors:
+    exec-detect-drift-op:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - detect_drift_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.9.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef detect_drift_op(mlflow_uri: str, train_run_id: str) -> int:\n\
+          \    \"\"\"Download baseline from train run artifact and run KS drift test.\"\
+          \"\"\n    import os\n    import shutil\n    import tempfile\n\n    import\
+          \ mlflow\n    import numpy as np\n    from scipy import stats\n\n    from\
+          \ data.loader import FEATURE_NAMES, load\n\n    mlflow.set_tracking_uri(mlflow_uri)\n\
+          \n    # Download baseline saved by train_model_op\n    with tempfile.TemporaryDirectory()\
+          \ as tmp:\n        local_path = mlflow.artifacts.download_artifacts(\n \
+          \           run_id=train_run_id,\n            artifact_path=\"baseline/baseline_X_train.npy\"\
+          ,\n            dst_path=tmp,\n        )\n        X_baseline = np.load(local_path)\n\
+          \n    dataset = load()\n    X_new = dataset[\"X_test\"]\n    DRIFT_THRESHOLD\
+          \ = 0.05\n\n    mlflow.set_experiment(\"k8s-failure-detection-monitor\"\
+          )\n    drifted = []\n\n    with mlflow.start_run(run_name=\"drift-check\"\
+          ):\n        for i, name in enumerate(FEATURE_NAMES):\n            stat,\
+          \ p_value = stats.ks_2samp(X_baseline[:, i], X_new[:, i])\n            mlflow.log_metric(f\"\
+          ks_{name}\", stat)\n            mlflow.log_metric(f\"pval_{name}\", p_value)\n\
+          \            if p_value < DRIFT_THRESHOLD:\n                drifted.append(name)\n\
+          \        mlflow.log_metric(\"n_drifted_features\", len(drifted))\n     \
+          \   mlflow.log_param(\"drifted_features\", \",\".join(drifted) if drifted\
+          \ else \"none\")\n\n    print(f\"Drift: {len(drifted)}/{len(FEATURE_NAMES)}\
+          \ features  \u2192  {drifted or 'none'}\")\n    return len(drifted)\n\n"
+        image: mlops-playground:latest
+    exec-promote-model-op:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - promote_model_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.9.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef promote_model_op(mlflow_uri: str, version: str) -> None:\n  \
+          \  import mlflow\n    from mlflow.tracking import MlflowClient\n\n    MODEL_NAME\
+          \ = \"k8s-failure-classifier\"\n    mlflow.set_tracking_uri(mlflow_uri)\n\
+          \    MlflowClient().set_registered_model_alias(MODEL_NAME, \"production\"\
+          , version)\n    print(f\"Promoted '{MODEL_NAME}' v{version} \u2192 @production\"\
+          )\n\n"
+        image: mlops-playground:latest
+    exec-register-model-op:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - register_model_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.9.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef register_model_op(mlflow_uri: str, run_id: str) -> str:\n   \
+          \ import mlflow\n    from mlflow.tracking import MlflowClient\n\n    MODEL_NAME\
+          \ = \"k8s-failure-classifier\"\n    mlflow.set_tracking_uri(mlflow_uri)\n\
+          \    result = mlflow.register_model(f\"runs:/{run_id}/model\", MODEL_NAME)\n\
+          \    version = str(result.version)\n    MlflowClient().set_registered_model_alias(MODEL_NAME,\
+          \ \"staging\", version)\n    print(f\"Registered '{MODEL_NAME}' v{version}\
+          \ \u2192 @staging\")\n    return version\n\n"
+        image: mlops-playground:latest
+    exec-train-model-op:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - train_model_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.9.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef train_model_op(\n    mlflow_uri: str,\n    n_estimators: int,\n\
+          \    max_depth: int,\n    learning_rate: float,\n) -> str:\n    \"\"\"Train\
+          \ model and log baseline artifact to MLflow. Returns run_id.\"\"\"\n   \
+          \ import mlflow\n    import mlflow.sklearn\n    from sklearn.ensemble import\
+          \ GradientBoostingClassifier\n    from sklearn.metrics import accuracy_score,\
+          \ f1_score\n    from sklearn.model_selection import cross_val_score\n\n\
+          \    from data.loader import load, save_baseline\n    from data.validator\
+          \ import validate\n\n    mlflow.set_tracking_uri(mlflow_uri)\n    dataset\
+          \ = load()\n    save_baseline(dataset[\"X_train\"])\n\n    mlflow.set_experiment(\"\
+          k8s-failure-detection\")\n    with mlflow.start_run() as run:\n        mlflow.log_params({\n\
+          \            \"n_estimators\": n_estimators,\n            \"max_depth\"\
+          : max_depth,\n            \"learning_rate\": learning_rate,\n          \
+          \  \"n_features\": dataset[\"n_features\"],\n            \"n_classes\":\
+          \ dataset[\"n_classes\"],\n        })\n        validate(dataset, log_to_mlflow=True)\n\
+          \n        clf = GradientBoostingClassifier(\n            n_estimators=n_estimators,\n\
+          \            max_depth=max_depth,\n            learning_rate=learning_rate,\n\
+          \            random_state=42,\n        )\n        cv_scores = cross_val_score(\n\
+          \            clf, dataset[\"X_train\"], dataset[\"y_train\"], cv=5, scoring=\"\
+          accuracy\"\n        )\n        clf.fit(dataset[\"X_train\"], dataset[\"\
+          y_train\"])\n        preds = clf.predict(dataset[\"X_test\"])\n\n      \
+          \  metrics = {\n            \"accuracy\": float(accuracy_score(dataset[\"\
+          y_test\"], preds)),\n            \"f1_macro\": float(f1_score(dataset[\"\
+          y_test\"], preds, average=\"macro\")),\n            \"cv_mean_accuracy\"\
+          : float(cv_scores.mean()),\n            \"cv_std_accuracy\": float(cv_scores.std()),\n\
+          \        }\n        mlflow.log_metrics(metrics)\n        mlflow.sklearn.log_model(clf,\
+          \ artifact_path=\"model\", input_example=dataset[\"X_test\"][:2])\n\n  \
+          \      # Log baseline so detect_drift_op can download it by run_id\n   \
+          \     mlflow.log_artifact(\"/app/data_cache/baseline_X_train.npy\", artifact_path=\"\
+          baseline\")\n\n        run_id = run.info.run_id\n\n    print(f\"run_id={run_id}\
+          \  metrics={metrics}\")\n    return run_id\n\n"
+        image: mlops-playground:latest
+    exec-validate-data-op:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - validate_data_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.9.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef validate_data_op(mlflow_uri: str) -> int:\n    import mlflow\n\
+          \    from data.loader import load\n    from data.validator import validate\n\
+          \n    mlflow.set_tracking_uri(mlflow_uri)\n    dataset = load()\n    warnings\
+          \ = validate(dataset, log_to_mlflow=False)\n    print(f\"Data version :\
+          \ {dataset['data_version']}\")\n    print(f\"Warnings     : {warnings or\
+          \ 'none'}\")\n    return len(warnings)\n\n"
+        image: mlops-playground:latest
+pipelineInfo:
+  description: "End-to-end MLOps: validate \u2192 train \u2192 register \u2192 promote\
+    \ \u2192 drift detection"
+  name: k8s-failure-detection
+root:
+  dag:
+    tasks:
+      detect-drift-op:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-detect-drift-op
+        dependentTasks:
+        - promote-model-op
+        - train-model-op
+        inputs:
+          parameters:
+            mlflow_uri:
+              componentInputParameter: mlflow_uri
+            train_run_id:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: train-model-op
+        taskInfo:
+          name: "5 \xB7 Detect Drift"
+      promote-model-op:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-promote-model-op
+        dependentTasks:
+        - register-model-op
+        inputs:
+          parameters:
+            mlflow_uri:
+              componentInputParameter: mlflow_uri
+            version:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: register-model-op
+        taskInfo:
+          name: "4 \xB7 Promote \u2192 @production"
+      register-model-op:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-register-model-op
+        dependentTasks:
+        - train-model-op
+        inputs:
+          parameters:
+            mlflow_uri:
+              componentInputParameter: mlflow_uri
+            run_id:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: train-model-op
+        taskInfo:
+          name: "3 \xB7 Register \u2192 @staging"
+      train-model-op:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-train-model-op
+        dependentTasks:
+        - validate-data-op
+        inputs:
+          parameters:
+            learning_rate:
+              componentInputParameter: learning_rate
+            max_depth:
+              componentInputParameter: max_depth
+            mlflow_uri:
+              componentInputParameter: mlflow_uri
+            n_estimators:
+              componentInputParameter: n_estimators
+        taskInfo:
+          name: "2 \xB7 Train Model"
+      validate-data-op:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-validate-data-op
+        inputs:
+          parameters:
+            mlflow_uri:
+              componentInputParameter: mlflow_uri
+        taskInfo:
+          name: "1 \xB7 Validate Data"
+  inputDefinitions:
+    parameters:
+      learning_rate:
+        defaultValue: 0.1
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+      max_depth:
+        defaultValue: 3.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      mlflow_uri:
+        defaultValue: http://mlflow-server:5000
+        isOptional: true
+        parameterType: STRING
+      n_estimators:
+        defaultValue: 100.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.9.0

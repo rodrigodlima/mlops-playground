@@ -6,8 +6,8 @@ import argparse
 import mlflow
 from mlflow.tracking import MlflowClient
 
-EXPERIMENT = "wine-quality"
-MODEL_NAME = "wine-quality-classifier"
+EXPERIMENT = "k8s-failure-detection"
+MODEL_NAME = "k8s-failure-classifier"
 ALIAS_STAGING = "staging"
 ALIAS_PRODUCTION = "production"
 

@@ -195,6 +195,8 @@ who makes sure clean data arrives.
 In the end,
 MLOps is a culture —
 not only a **toolset**.
+Now, Jeferson will show you this in practice
+Over to you, Jeferson
 
 ---
 

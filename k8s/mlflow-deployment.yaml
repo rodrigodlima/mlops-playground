@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow-server
+  labels:
+    app: mlflow-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mlflow-server
+  template:
+    metadata:
+      labels:
+        app: mlflow-server
+    spec:
+      containers:
+        - name: mlflow-server
+          image: mlops-playground:latest
+          imagePullPolicy: Never          # loaded via minikube image load
+          command:
+            - mlflow
+            - server
+            - --host=0.0.0.0
+            - --port=5000
+            - --backend-store-uri=sqlite:////mlflow-data/mlflow.db
+            - --default-artifact-root=/mlflow-data/artifacts
+          ports:
+            - containerPort: 5000
+          volumeMounts:
+            - name: mlflow-data
+              mountPath: /mlflow-data
+      volumes:
+        - name: mlflow-data
+          emptyDir: {}             # ephemeral; swap for PVC in production
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlflow-server
+spec:
+  selector:
+    app: mlflow-server
+  ports:
+    - name: http
+      port: 5000
+      targetPort: 5000
+      nodePort: 30500
+  type: NodePort
