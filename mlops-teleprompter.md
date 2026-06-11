@@ -1,4 +1,4 @@
-# 🎤 TELEPROMPTER — MLOps (slides 11–14)
+# 🎤 TELEPROMPTER — MLOps (slides 11–14) · versão 5 min
 
 **Como ler:** fim de linha = respire · linha em branco = pausa real · **negrito** = desacelere e capriche
 
@@ -9,19 +9,12 @@
 Component three:
 experiment tracking.
 
-Now, this part is very important
-for **data scientists** —
-so I want to talk about it **by itself**.
+When you build a model,
+you run many experiments —
+different features, **parameters**,
+and algorithms.
 
-Think about it:
-when you build a model,
-you run many experiments.
-
-You try different features —
-different **parameters** —
-and different algorithms.
-
-And without a tracking system,
+Without a tracking system,
 everything becomes confusing.
 
 You have many files with names like
@@ -35,27 +28,24 @@ I think many people here
 have files like that.
 
 So, a tracking **tool** like **MLflow**
-helps solve this problem.
+solves this problem.
 
 Every time you train a model,
 it saves everything for you:
-
-the **parameters** you used —
-the metrics you got —
+the **parameters**, the metrics,
 and the **model file**.
 
 In the end, you have one **table**
-where you can see **all** your experiments
-and compare them easily.
+to see and compare
+**all** your experiments.
 
 And we also get two important things:
 
 we can build the same model again —
-we know how it was created.
 
-And a model **registry**:
-one place to store and manage
-the different versions of our models.
+and a model **registry**:
+one place to manage
+**all** our model versions.
 
 ---
 
@@ -64,44 +54,35 @@ the different versions of our models.
 Component four:
 tests.
 
-So, in machine learning,
-we have to test more
-than regular software.
+In machine learning,
+we test more than regular software.
 
-We still write the normal code tests —
-is the code correct?
-Does it work?
-
-But we add two new types of tests.
+We still write the normal code tests.
+But we add two new types.
 
 First, data tests:
 before training —
 is the data valid?
-Is the format right?
-Are there strange values?
-Is there too much missing data?
+Right format?
+Too much missing data?
 
 Because bad data creates a bad model —
-and you don't see it happen.
-
-So we check the data
+so we check the data
 at the door.
 
 And second, model tests:
 before a model goes live —
 is it really good enough?
 
-Now, we don't just look
-at the **overall accuracy**.
+We don't just look at **overall accuracy**.
 
-We check the model
-on important parts of the data —
-we check it for fairness —
+We check important parts of the data —
+we check fairness —
 and, most important,
 we compare it against the model
-already in production.
+in production.
 
-And that last check
+That last check
 is our safety net:
 
 the new model must win.
@@ -119,11 +100,10 @@ has to catch the mistake.
 And the fifth component:
 **monitoring**.
 
-Now, for me, this is what really makes MLOps
+For me, this is what really makes MLOps
 different from normal software.
 
-Think about it:
-a normal app, with no bugs,
+A normal app, with no bugs,
 stays the same forever.
 
 But a model is different.
@@ -135,7 +115,7 @@ And this problem has a name —
 
 drift.
 
-So, there are two types.
+There are two types.
 
 Data drift is when
 the inputs change shape —
@@ -145,36 +125,32 @@ starts using the product.
 And concept drift is when
 the connection itself changes.
 
-Let's say —
-last year, a **pattern** **meant fraud**.
+Last year, a **pattern** **meant fraud**.
 
 Today —
 the same **pattern** is normal.
 
-OK — so we monitor
-on three levels.
+So we monitor on three levels.
 
-First, infrastructure:
+Infrastructure:
 **latency**, memory —
 is the service even up?
 
-Second, data:
+Data:
 do the inputs still look like
 the **data** we trained on?
 
-And third, the model:
-is the **accuracy**,
-or the business metric,
-still good?
+And the model:
+is the **accuracy** still good?
 
-Now, when any of these crosses a limit,
+When any of these crosses a limit,
 we fire an alert —
 and, if possible,
 the **pipeline** starts a re-train,
 **by itself**.
 
-And that closes the loop —
-you can see it here on the slide.
+That closes the loop
+you see on the slide.
 
 In the end,
 **monitoring** is what makes MLOps
@@ -185,15 +161,14 @@ and not a one-time launch.
 
 ## 🖥️ SLIDE 14 — Tools & People
 
-OK — let me quickly map the tools,
-so all these names land somewhere.
+OK — let me quickly map the tools.
 
 They match what we already saw:
 
 Git and **DVC**
 to version code and data —
 
-**MLflow** for experiment tracking
+**MLflow** for tracking
 and the model **registry** —
 
 Docker and **Kubernetes**
@@ -213,8 +188,7 @@ the ML engineer,
 who makes it ready for production —
 
 and the data engineer,
-who makes sure that clean data arrives
-in the first place.
+who makes sure clean data arrives.
 
 ⏸️ *(olhe para a câmera)*
 
